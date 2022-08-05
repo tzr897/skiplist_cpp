@@ -32,9 +32,9 @@ public:
 
     int insert_element(K, V);
 
-    void display_list();
+    void display_list() const;
 
-    bool search_element(K k);
+    bool search_element(K k) const;
 
     void delete_element(K k);
 

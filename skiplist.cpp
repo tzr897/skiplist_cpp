@@ -1,6 +1,9 @@
 #include "skiplist.h"
 
+#define STORE_FILE "store/dumpFile"
+
 mutex mtx;
+string delimiter = ":";
 
 template<typename K, typename V>
 Skiplist<K, V>::Skiplist(int max_level) {
@@ -71,7 +74,7 @@ int Skiplist<K, V>::insert_element(const K k, const V v) {
 
     // if current node's key is equal to the searched key, it means we get it
     if (cur && cur->get_key() == k) {
-        cout << "Key: " << k << " exists." << endl;
+        cout << "key: " << key << ", exists" << endl;
         mtx.unlock();
         return 1; 
     }
@@ -97,7 +100,7 @@ int Skiplist<K, V>::insert_element(const K k, const V v) {
         update[i]->forward[i] = new_node;
     }
 
-    cout << "key: " << k << " value: " << v << " , has been inserted successfully" << endl;
+    cout << "Successfully inserted key:" << key << ", value:" << value << endl;
     ++_element_count;
 
     mtx.unlock();
@@ -107,6 +110,122 @@ int Skiplist<K, V>::insert_element(const K k, const V v) {
 
 // display the skiplist
 template<typename K, typename V>
-void Skiplist<K, V>::display_list() {
+void Skiplist<K, V>::display_list() const {
+    cout << endl << "***** SKIP LIST*****" << endl;
+    for (int i = 0; i <= _skiplist_level; ++i) {
+        Node<K, V> *cur = this->_head->forward[i];
+        cout << "Level " << i << ": ";
+        while (cur) {
+            cout << cur->get_key() << ":" << cur->get_val() << ";";
+            cur = cur->forward[i];
+        }
+        cout << endl;
+    }
+}
+
+// dump the data in the memory to file
+template<typename K, typename V>
+void Skiplist<K, V>::dump_file() {
+    cout << "----------dump file----------" << endl;
+    _file_writer.open(STORE_FILE);
     
+    Node<K, V> *cur = this->_head->forward[0];
+
+    while (cur) {
+        _file_writer << cur->get_key() << ":" << cur->get_val() << "\n";
+        cout << cur->get_key() << ":" << cur->get_val() << ";\n";
+        cur = cur->forward[0];
+    }
+
+    _file_writer.flush();
+    _file_writer.close();
+    return ;
+}
+
+// load the data from the disk
+template<typename K, typename V>
+void Skiplist<K, V>::load_file() {
+    _file_reader.open(STORE_FILE);
+    cout << "----------load file----------" << endl;
+    string line;
+    string *key = new string();
+    string *val = new string();
+    while (getline(_file_reader, line)) {
+        get_key_val_from_string(line, key, val);
+        
+        if (key->empty() || val->empty()) {
+            continue;
+        }
+
+        insert_element(*key, *val);
+        cout << "key:" << *key << "value:" << *val << endl;
+    }
+    _file_reader.close();
+}
+
+// get current size of the skiplist
+template<typename K, typename V>
+int Skiplist<K, V>::get_size() const {
+    return _element_count;
+}
+
+template<typename K, typename V>
+void Skiplist<K, V>::get_key_val_from_string(const string& str, string *key, string *val) {
+    if (!is_valid_string(str)) {
+        return ;
+    }
+    auto idx = str.find(delimiter);
+    *key = str.substr(0, idx);
+    *val = str.substr(idx + 1, str.size());
+}
+
+template<typename K, typename V>
+bool Skiplist<K, V>::is_valid_string(const string& str) {
+    if (str.empty() || str.find(delimiter) == string::npos) {
+        return false;
+    }
+    return true;
+}
+
+
+// delete element from the skiplist
+template<typename K, typename V>
+void Skiplist<K, V>::delete_element(K key) {
+    mtx.lock();
+
+    Node<K, V> *cur = this->_head;
+    Node<K, V> *update[_max_level + 1];
+    memset(update, 0, sizeof(Node<K, V>*) * (_max_level + 1));
+
+    // start searching from the highest level of the skiplist
+    for (int i = _skiplist_level; i >= 0; --i) {
+        while (cur->forward[i] && cur->forward[i]->get_key() < key) {
+            cur = cur->forward[i];
+        }
+        update[i] = cur;
+    }
+
+    cur = cur->forward[0];
+
+    if (cur && cur->get_key() == key) {
+        // start from the lowest level, and delete the current node of each level
+        for (int i = 0; i <= _skiplist_level; ++i) {
+            // if at level i, and next node is not the target node
+            // break
+            if (update[i]->forward[i] != cur) {
+                break;
+            }
+            update[i]->forward[i] = cur->forward[i];
+        }
+
+        // remove level that have no elements
+        while (_skiplist_level > 0 && _head->forward[_skiplist_level] == 0) {
+            --_skiplist_level;
+        }
+
+        cout << "delete key " << key << "successfully" << endl;
+        --_element_count;
+    }
+    mtx.unclock();
+    return ;
 }
