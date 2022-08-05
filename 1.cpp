@@ -1,9 +1,12 @@
 #include "skiplist.h"
 
-#define STORE_FILE "store/dumpFile"
+
 
 mutex mtx;
 string delimiter = ":";
+
+template<typename K, typename V>
+Skiplist<K, V>::Skiplist() {}
 
 template<typename K, typename V>
 Skiplist<K, V>::Skiplist(int max_level) {
@@ -74,7 +77,7 @@ int Skiplist<K, V>::insert_element(const K k, const V v) {
 
     // if current node's key is equal to the searched key, it means we get it
     if (cur && cur->get_key() == k) {
-        cout << "key: " << key << ", exists" << endl;
+        cout << "key: " << k << ", exists" << endl;
         mtx.unlock();
         return 1; 
     }
@@ -100,7 +103,7 @@ int Skiplist<K, V>::insert_element(const K k, const V v) {
         update[i]->forward[i] = new_node;
     }
 
-    cout << "Successfully inserted key:" << key << ", value:" << value << endl;
+    cout << "Successfully inserted key:" << k << ", value:" << v << endl;
     ++_element_count;
 
     mtx.unlock();
@@ -226,7 +229,7 @@ void Skiplist<K, V>::delete_element(K key) {
         cout << "delete key " << key << "successfully" << endl;
         --_element_count;
     }
-    mtx.unclock();
+    mtx.unlock();
     return ;
 }
 
