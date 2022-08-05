@@ -65,6 +65,48 @@ int Skiplist<K, V>::insert_element(const K k, const V v) {
         update[i] = cur;
     }
 
-    
+    // now we reach level 0
+    // forward pointer to right node, which is desired to insert key
+    cur = cur->forward[0];
 
+    // if current node's key is equal to the searched key, it means we get it
+    if (cur && cur->get_key() == k) {
+        cout << "Key: " << k << " exists." << endl;
+        mtx.unlock();
+        return 1; 
+    }
+
+    // now cur == nullptr, or the key is different from the searched key
+    int random_level = get_random_level();
+    
+    // if the random_level we get is greater than current level
+    // initialize update value with pointer to header
+    if (random_level > _skiplist_level) {
+        for (int i = _skiplist_level + 1; i <= random_level; ++i) {
+            update[i] = _head;
+        }
+        _skiplist_level = random_level;
+    }
+
+    // create the new node with random_level
+    Node<K, V> *new_node = create_node(k, v, random_level);
+
+    // insert the new node
+    for (int i = 0; i <= random_level; ++i) {
+        new_node->forward[i] = update[i]->forward[i];
+        update[i]->forward[i] = new_node;
+    }
+
+    cout << "key: " << k << " value: " << v << " , has been inserted successfully" << endl;
+    ++_element_count;
+
+    mtx.unlock();
+    return 0; 
+
+}
+
+// display the skiplist
+template<typename K, typename V>
+void Skiplist<K, V>::display_list() {
+    
 }
