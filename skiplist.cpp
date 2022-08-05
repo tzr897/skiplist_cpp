@@ -229,3 +229,27 @@ void Skiplist<K, V>::delete_element(K key) {
     mtx.unclock();
     return ;
 }
+
+template<typename K, typename V>
+bool Skiplist<K, V>::search_element(K key) const {
+    cout << "----------search element----------" << endl;
+    Node<K, V> *cur = _head;
+
+    // start searching from the highest level of the skiplist
+    for (int i = _skiplist_level; i >= 0; --i) {
+        while (cur->forward[i] && cur->forward[i]->get_key() < key) {
+            cur = cur->forward[i];
+        }
+    }
+
+    // reach level 0
+    cur = cur->forward[0];
+
+    // if current node's key is equal to the searched key, it means we get it
+    if (cur && cur->get_key() == key) {
+        return true;
+    }
+
+    cout << "key " << key << " not found" << endl;
+    return false;
+}
